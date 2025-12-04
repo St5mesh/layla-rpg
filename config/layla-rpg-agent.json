@@ -203,6 +203,79 @@
     },
     
     {
+      "_comment": "Save current game progress",
+      "id": "save_game",
+      "patterns": [
+        "save game",
+        "save progress",
+        "save my game",
+        "save my progress",
+        "create save",
+        "backup game"
+      ],
+      "regexPatterns": [
+        "^save\\s+(game|progress|my\\s+(game|progress))$",
+        "^(create\\s+)?save$",
+        "^backup\\s+game$"
+      ],
+      "httpMethod": "POST",
+      "endpoint": "/save_game",
+      "bodyTemplate": {
+        "saveName": "Manual Save"
+      },
+      "responseField": "message",
+      "responsePrefix": "💾 ",
+      "helpText": "Say 'save game' to save your progress."
+    },
+    
+    {
+      "_comment": "Load a saved game - shows list first",
+      "id": "load_game_list",
+      "patterns": [
+        "load game",
+        "load save",
+        "load my game",
+        "restore game",
+        "continue game",
+        "show saves",
+        "list saves"
+      ],
+      "regexPatterns": [
+        "^(load|restore|continue)\\s+(game|save)$",
+        "^load\\s+my\\s+game$",
+        "^(show|list)\\s+saves?$"
+      ],
+      "httpMethod": "GET",
+      "endpoint": "/saved_games",
+      "responseField": "saves",
+      "responseProcessor": "formatSaveList",
+      "responsePrefix": "💽 **Saved Games:**\\n\\n",
+      "helpText": "Say 'load game' to see available saves."
+    },
+    
+    {
+      "_comment": "Load a specific saved game by name pattern",
+      "id": "load_specific_game",
+      "patterns": [],
+      "regexPatterns": [
+        "^load\\s+(.+)$",
+        "^restore\\s+(.+)$"
+      ],
+      "captureGroups": {
+        "1": "filename"
+      },
+      "httpMethod": "POST",
+      "endpoint": "/load_game",
+      "bodyTemplate": {
+        "filename": "{filename}"
+      },
+      "responseField": "description",
+      "fallbackResponseField": "message",
+      "responsePrefix": "🔄 Game loaded!\\n\\n",
+      "helpText": "Say 'load [filename]' to load a specific save."
+    },
+    
+    {
       "_comment": "Help command",
       "id": "help",
       "patterns": [
@@ -218,7 +291,7 @@
         "^what\\s+can\\s+I\\s+do\\??$"
       ],
       "staticResponse": true,
-      "response": "🎮 **Layla RPG Commands**\n\n**Exploration:**\n• 'look around' - See your surroundings\n• 'go to [place]' - Travel somewhere\n• 'scan' - Check for enemies\n\n**Character:**\n• 'check stats' - View your stats\n• 'check inventory' - See your items\n\n**Combat:**\n• 'attack [enemy]' - Fight an enemy\n\n**Game:**\n• 'new game' - Start fresh\n• 'help' - Show this message",
+      "response": "🎮 **Layla RPG Commands**\n\n**Exploration:**\n• 'look around' - See your surroundings\n• 'go to [place]' - Travel somewhere\n• 'scan' - Check for enemies\n\n**Character:**\n• 'check stats' - View your stats\n• 'check inventory' - See your items\n\n**Combat:**\n• 'attack [enemy]' - Fight an enemy\n\n**Save & Load:**\n• 'save game' - Save your progress\n• 'load game' - See saved games\n• 'load [filename]' - Load specific save\n\n**Game:**\n• 'new game' - Start fresh\n• 'help' - Show this message",
       "helpText": "Say 'help' to see all available commands."
     }
   ],
