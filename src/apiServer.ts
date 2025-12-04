@@ -28,6 +28,29 @@ import {
   applyAttackResult,
   moveToLocation
 } from './rpgEngine';
+import {
+  validateEnemyTarget,
+  validateLocationMove,
+  validateLocationForDescription,
+  validatePlayerName,
+  createValidationErrorResponse
+} from './validation';
+import {
+  requestLoggingMiddleware,
+  errorHandlingMiddleware,
+  notFoundMiddleware,
+  formatSuccessResponse,
+  createValidationError,
+  createNotFoundError,
+  asyncHandler,
+  timeoutMiddleware
+} from './errorHandling';
+import {
+  saveGame,
+  loadGame,
+  listSavedGames,
+  deleteSavedGame
+} from './persistence';
 
 // ==================== SERVER CONFIGURATION ====================
 
@@ -45,6 +68,43 @@ const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : DEFAULT_PORT;
  */
 let gameState: GameState = createDefaultGameState("Hero");
 
+// ==================== AUTO-SAVE CONFIGURATION ====================
+
+/** Enable/disable auto-save functionality */
+const AUTO_SAVE_ENABLED = process.env.AUTO_SAVE_ENABLED !== 'false';
+
+/** Auto-save events configuration */
+const AUTO_SAVE_EVENTS = {
+  ENEMY_DEFEATED: true,
+  LEVEL_UP: true,
+  LOCATION_CHANGE: true,
+  GAME_START: false // Don't auto-save on game start
+};
+
+/**
+ * Performs an auto-save operation if enabled
+ * @param reason - The reason for the auto-save (for naming)
+ * @param force - Force save even if auto-save is disabled
+ */
+async function performAutoSave(reason: string, force: boolean = false): Promise<void> {
+  if (!AUTO_SAVE_ENABLED && !force) {
+    return;
+  }
+  
+  try {
+    const saveName = `Auto-Save (${reason})`;
+    const result = await saveGame(gameState, saveName);
+    
+    if (result.success) {
+      console.log(`✅ Auto-saved: ${saveName} → ${result.filename}`);
+    } else {
+      console.warn(`⚠️ Auto-save failed for ${reason}:`, result.error);
+    }
+  } catch (error) {
+    console.error(`❌ Auto-save error for ${reason}:`, error);
+  }
+}
+
 // ==================== EXPRESS APP SETUP ====================
 
 /** Create Express application */
@@ -56,14 +116,11 @@ app.use(express.json());
 /** Enable URL-encoded body parsing */
 app.use(express.urlencoded({ extended: true }));
 
-/**
- * Request logging middleware.
- * Logs all incoming requests for debugging.
- */
-app.use((req: Request, _res: Response, next: NextFunction) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
-  next();
-});
+/** Add request timeout protection (30 seconds) */
+app.use(timeoutMiddleware(30000));
+
+/** Enhanced request logging middleware */
+app.use(requestLoggingMiddleware);
 
 // ==================== API ENDPOINTS ====================
 
@@ -98,24 +155,22 @@ app.get('/health', (_req: Request, res: Response) => {
  * 
  * Example Layla Trigger: "look around", "where am I", "enter tavern"
  */
-app.get('/describe_location', (req: Request, res: Response) => {
+app.get('/describe_location', asyncHandler(async (req: Request, res: Response) => {
   const locationId = req.query.location as string | undefined;
   
-  try {
-    const description = describeLocation(gameState, locationId);
-    res.json({
-      success: true,
-      description,
-      currentLocation: gameState.player.currentLocation
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: 'Failed to describe location',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    });
+  // Validate location if provided
+  const validation = validateLocationForDescription(gameState, locationId);
+  if (!validation.isValid) {
+    return res.status(400).json(createValidationErrorResponse(validation));
   }
-});
+  
+  const description = describeLocation(gameState, locationId);
+  res.json({
+    success: true,
+    description,
+    currentLocation: gameState.player.currentLocation
+  });
+}));
 
 /**
  * GET /get_stats
@@ -131,24 +186,16 @@ app.get('/describe_location', (req: Request, res: Response) => {
  * 
  * Example Layla Trigger: "check stats", "show my stats", "character"
  */
-app.get('/get_stats', (_req: Request, res: Response) => {
-  try {
-    const formattedStats = getStats(gameState.player);
-    const playerData = getPlayerData(gameState.player);
-    
-    res.json({
-      success: true,
-      stats: formattedStats,
-      data: playerData
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: 'Failed to get stats',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    });
-  }
-});
+app.get('/get_stats', asyncHandler(async (_req: Request, res: Response) => {
+  const formattedStats = getStats(gameState.player);
+  const playerData = getPlayerData(gameState.player);
+  
+  res.json({
+    success: true,
+    stats: formattedStats,
+    data: playerData
+  });
+}));
 
 /**
  * POST /attack
@@ -163,47 +210,49 @@ app.get('/get_stats', (_req: Request, res: Response) => {
  * 
  * Example Layla Trigger: "attack goblin", "fight rat", "attack wolf"
  */
-app.post('/attack', (req: Request, res: Response) => {
+app.post('/attack', asyncHandler(async (req: Request, res: Response) => {
   const { target } = req.body;
   
-  // Validate target parameter
-  if (!target || typeof target !== 'string') {
-    res.status(400).json({
-      success: false,
-      error: 'Missing or invalid target parameter',
-      message: 'Please specify who you want to attack. Example: { "target": "goblin" }'
-    });
-    return;
+  // Validate enemy target
+  const validation = validateEnemyTarget(gameState, target);
+  if (!validation.isValid) {
+    return res.status(400).json(createValidationErrorResponse(validation));
   }
   
-  try {
-    // Perform the attack
-    const result = attack(gameState, target);
+  // Perform the attack
+  const result = attack(gameState, target);
+  
+  // Update game state if attack was successful
+  if (result.success) {
+    gameState = applyAttackResult(gameState, result, target);
     
-    // Update game state if attack was successful
-    if (result.success) {
-      gameState = applyAttackResult(gameState, result, target);
+    // Auto-save if enemy was defeated
+    if (result.enemyDefeated && AUTO_SAVE_EVENTS.ENEMY_DEFEATED) {
+      performAutoSave(`Enemy Defeated: ${target}`);
     }
     
-    res.json({
-      success: result.success,
-      result: {
-        message: result.message,
-        damage: result.damage,
-        enemyDefeated: result.enemyDefeated,
-        experienceGained: result.experienceGained,
-        playerHealth: result.playerStats.health,
-        playerMaxHealth: result.playerStats.maxHealth
+    // Auto-save if player leveled up (check if XP crossed level boundary)
+    // Note: This is a simple check - in a more complex system, you'd track level changes
+    if (result.experienceGained > 0 && AUTO_SAVE_EVENTS.LEVEL_UP) {
+      const newLevel = Math.floor(result.playerStats.experience / 100) + 1; // Simple level calculation
+      if (newLevel > gameState.player.stats.level) {
+        performAutoSave(`Level Up: Level ${newLevel}`);
       }
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: 'Attack failed',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    });
+    }
   }
-});
+  
+  res.json({
+    success: result.success,
+    result: {
+      message: result.message,
+      damage: result.damage,
+      enemyDefeated: result.enemyDefeated,
+      experienceGained: result.experienceGained,
+      playerHealth: result.playerStats.health,
+      playerMaxHealth: result.playerStats.maxHealth
+    }
+  });
+}));
 
 /**
  * POST /move
@@ -218,46 +267,42 @@ app.post('/attack', (req: Request, res: Response) => {
  * 
  * Example Layla Trigger: "go to tavern", "enter forest", "move to town square"
  */
-app.post('/move', (req: Request, res: Response) => {
+app.post('/move', asyncHandler(async (req: Request, res: Response) => {
   const { location } = req.body;
   
   // Validate location parameter
-  if (!location || typeof location !== 'string') {
-    res.status(400).json({
-      success: false,
-      error: 'Missing or invalid location parameter',
-      message: 'Please specify where you want to go. Example: { "location": "tavern" }'
-    });
-    return;
+  const validation = validateLocationMove(gameState, location);
+  if (!validation.isValid) {
+    return res.status(400).json(createValidationErrorResponse(validation));
   }
   
-  try {
-    const result = moveToLocation(gameState, location);
+  const result = moveToLocation(gameState, location);
+  
+  // Update game state if move was successful
+  if (result.success) {
+    const previousLocation = gameState.player.currentLocation;
+    gameState = result.state;
     
-    // Update game state if move was successful
-    if (result.success) {
-      gameState = result.state;
+    // Auto-save on location change
+    if (AUTO_SAVE_EVENTS.LOCATION_CHANGE) {
+      const newLocationName = gameState.locations[gameState.player.currentLocation]?.name || 
+                              gameState.player.currentLocation;
+      performAutoSave(`Moved to ${newLocationName}`);
     }
-    
-    // Get description of new location if move was successful
-    const description = result.success 
-      ? describeLocation(gameState)
-      : undefined;
-    
-    res.json({
-      success: result.success,
-      message: result.message,
-      description,
-      currentLocation: gameState.player.currentLocation
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: 'Move failed',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    });
   }
-});
+  
+  // Get description of new location if move was successful
+  const description = result.success 
+    ? describeLocation(gameState)
+    : undefined;
+  
+  res.json({
+    success: result.success,
+    message: result.message,
+    description,
+    currentLocation: gameState.player.currentLocation
+  });
+}));
 
 /**
  * POST /new_game
@@ -272,30 +317,37 @@ app.post('/move', (req: Request, res: Response) => {
  * 
  * Example Layla Trigger: "start new game", "new character"
  */
-app.post('/new_game', (req: Request, res: Response) => {
-  const playerName = req.body.playerName || 'Hero';
+app.post('/new_game', asyncHandler(async (req: Request, res: Response) => {
+  const { playerName } = req.body;
+  let validatedPlayerName = 'Hero'; // default
   
-  try {
-    // Create a fresh game state
-    gameState = createDefaultGameState(playerName);
-    
-    // Get the starting location description
-    const description = describeLocation(gameState);
-    
-    res.json({
-      success: true,
-      message: `Welcome, ${playerName}! Your adventure begins...`,
-      description,
-      player: getPlayerData(gameState.player)
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: 'Failed to start new game',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    });
+  // Validate player name if provided
+  if (playerName) {
+    const nameValidation = validatePlayerName(playerName);
+    if (nameValidation) {
+      return res.status(400).json({
+        success: false,
+        error: nameValidation.code,
+        message: nameValidation.message,
+        details: [nameValidation]
+      });
+    }
+    validatedPlayerName = playerName.trim();
   }
-});
+  
+  // Create a fresh game state
+  gameState = createDefaultGameState(validatedPlayerName);
+  
+  // Get the starting location description
+  const description = describeLocation(gameState);
+  
+  res.json({
+    success: true,
+    message: `Welcome, ${validatedPlayerName}! Your adventure begins...`,
+    description,
+    player: getPlayerData(gameState.player)
+  });
+}));
 
 /**
  * GET /inventory
@@ -306,23 +358,15 @@ app.post('/new_game', (req: Request, res: Response) => {
  * 
  * Example Layla Trigger: "check inventory", "what do I have"
  */
-app.get('/inventory', (_req: Request, res: Response) => {
-  try {
-    res.json({
-      success: true,
-      inventory: gameState.player.inventory,
-      message: gameState.player.inventory.length > 0
-        ? `You are carrying: ${gameState.player.inventory.join(', ')}`
-        : 'Your inventory is empty.'
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: 'Failed to get inventory',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    });
-  }
-});
+app.get('/inventory', asyncHandler(async (_req: Request, res: Response) => {
+  res.json({
+    success: true,
+    inventory: gameState.player.inventory,
+    message: gameState.player.inventory.length > 0
+      ? `You are carrying: ${gameState.player.inventory.join(', ')}`
+      : 'Your inventory is empty.'
+  });
+}));
 
 /**
  * GET /enemies
@@ -333,44 +377,250 @@ app.get('/inventory', (_req: Request, res: Response) => {
  * 
  * Example Layla Trigger: "who is here", "list enemies", "scan area"
  */
-app.get('/enemies', (_req: Request, res: Response) => {
-  try {
-    const currentLocation = gameState.locations[gameState.player.currentLocation];
-    const enemies = currentLocation.enemies.map(e => ({
-      name: e.name,
-      description: e.description,
-      health: e.stats.health,
-      maxHealth: e.stats.maxHealth
-    }));
+app.get('/enemies', asyncHandler(async (_req: Request, res: Response) => {
+  const currentLocation = gameState.locations[gameState.player.currentLocation];
+  const enemies = currentLocation.enemies.map(e => ({
+    name: e.name,
+    description: e.description,
+    health: e.stats.health,
+    maxHealth: e.stats.maxHealth
+  }));
+  
+  res.json({
+    success: true,
+    enemies,
+    message: enemies.length > 0
+      ? `Enemies here: ${enemies.map(e => e.name).join(', ')}`
+      : 'There are no enemies here.'
+  });
+}));
+
+// ==================== PERSISTENCE ENDPOINTS ====================
+
+/**
+ * POST /save_game
+ * 
+ * Save the current game state to a file.
+ * 
+ * Request Body:
+ * - saveName (optional): Name for the save file (default: "Auto Save")
+ * 
+ * Response: { success: true/false, filename?: string, message: string }
+ * 
+ * Example Layla Trigger: "save game", "save my progress"
+ */
+app.post('/save_game', asyncHandler(async (req: Request, res: Response) => {
+  const { saveName = 'Auto Save' } = req.body;
+  
+  // Validate saveName if provided
+  if (saveName && (typeof saveName !== 'string' || saveName.trim().length === 0)) {
+    return res.status(400).json({
+      success: false,
+      error: 'INVALID_SAVE_NAME',
+      message: 'Save name must be a non-empty string',
+      timestamp: new Date().toISOString()
+    });
+  }
+  
+  const result = await saveGame(gameState, saveName.trim());
+  
+  if (result.success) {
+    res.json({
+      success: true,
+      filename: result.filename,
+      message: result.message,
+      timestamp: new Date().toISOString()
+    });
+  } else {
+    res.status(500).json({
+      success: false,
+      error: 'SAVE_FAILED',
+      message: result.message,
+      details: result.error,
+      timestamp: new Date().toISOString()
+    });
+  }
+}));
+
+/**
+ * POST /load_game
+ * 
+ * Load a saved game state from a file.
+ * 
+ * Request Body:
+ * - filename (required): Name of the save file to load
+ * 
+ * Response: { success: true/false, message: string, description?: string }
+ * 
+ * Example Layla Trigger: "load game", "load my save"
+ */
+app.post('/load_game', asyncHandler(async (req: Request, res: Response) => {
+  const { filename } = req.body;
+  
+  // Validate filename
+  if (!filename || typeof filename !== 'string' || filename.trim().length === 0) {
+    return res.status(400).json({
+      success: false,
+      error: 'MISSING_FILENAME',
+      message: 'Filename is required and must be a non-empty string',
+      timestamp: new Date().toISOString()
+    });
+  }
+  
+  const result = await loadGame(filename.trim());
+  
+  if (result.success && result.gameState) {
+    // Update the server's game state
+    gameState = result.gameState;
+    
+    // Get description of the loaded location
+    const description = describeLocation(gameState);
     
     res.json({
       success: true,
-      enemies,
-      message: enemies.length > 0
-        ? `Enemies here: ${enemies.map(e => e.name).join(', ')}`
-        : 'There are no enemies here.'
+      message: result.message,
+      description,
+      player: getPlayerData(gameState.player),
+      metadata: result.metadata,
+      timestamp: new Date().toISOString()
+    });
+  } else {
+    res.status(400).json({
+      success: false,
+      error: 'LOAD_FAILED',
+      message: result.message,
+      details: result.error,
+      timestamp: new Date().toISOString()
+    });
+  }
+}));
+
+/**
+ * GET /saved_games
+ * 
+ * List all available saved games with metadata.
+ * 
+ * Response: { success: true, saves: SaveGameMetadata[] }
+ * 
+ * Example Layla Trigger: "list saves", "show saved games"
+ */
+app.get('/saved_games', asyncHandler(async (_req: Request, res: Response) => {
+  const saves = await listSavedGames();
+  
+  res.json({
+    success: true,
+    saves,
+    count: saves.length,
+    message: saves.length > 0 
+      ? `Found ${saves.length} saved game${saves.length === 1 ? '' : 's'}`
+      : 'No saved games found',
+    timestamp: new Date().toISOString()
+  });
+}));
+
+/**
+ * DELETE /saved_games/:filename
+ * 
+ * Delete a specific saved game file.
+ * 
+ * URL Parameters:
+ * - filename (required): Name of the save file to delete
+ * 
+ * Response: { success: true/false, message: string }
+ * 
+ * Example: DELETE /saved_games/Hero_AutoSave_2023-12-04T10-30-00-000Z.json
+ */
+app.delete('/saved_games/:filename', asyncHandler(async (req: Request, res: Response) => {
+  const { filename } = req.params;
+  
+  if (!filename || filename.trim().length === 0) {
+    return res.status(400).json({
+      success: false,
+      error: 'MISSING_FILENAME',
+      message: 'Filename parameter is required',
+      timestamp: new Date().toISOString()
+    });
+  }
+  
+  const result = await deleteSavedGame(filename.trim());
+  
+  if (result.success) {
+    res.json({
+      success: true,
+      message: result.message,
+      timestamp: new Date().toISOString()
+    });
+  } else {
+    res.status(404).json({
+      success: false,
+      error: 'DELETE_FAILED',
+      message: result.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+}));
+
+/**
+ * GET /autosave_status
+ * 
+ * Get the current auto-save configuration and status.
+ * 
+ * Response: { success: true, enabled: boolean, events: object }
+ */
+app.get('/autosave_status', asyncHandler(async (_req: Request, res: Response) => {
+  res.json({
+    success: true,
+    enabled: AUTO_SAVE_ENABLED,
+    events: AUTO_SAVE_EVENTS,
+    message: AUTO_SAVE_ENABLED ? 'Auto-save is enabled' : 'Auto-save is disabled',
+    timestamp: new Date().toISOString()
+  });
+}));
+
+/**
+ * POST /manual_save
+ * 
+ * Trigger a manual auto-save (useful for testing or explicit saves).
+ * This bypasses the auto-save enabled check.
+ * 
+ * Request Body:
+ * - reason (optional): Custom reason for the save
+ * 
+ * Response: { success: true/false, message: string }
+ */
+app.post('/manual_save', asyncHandler(async (req: Request, res: Response) => {
+  const { reason = 'Manual Save' } = req.body;
+  
+  try {
+    await performAutoSave(reason, true); // Force save regardless of auto-save setting
+    
+    res.json({
+      success: true,
+      message: `Manual save completed: ${reason}`,
+      timestamp: new Date().toISOString()
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      error: 'Failed to get enemies',
-      message: error instanceof Error ? error.message : 'Unknown error'
+      error: 'MANUAL_SAVE_FAILED',
+      message: 'Failed to perform manual save',
+      details: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString()
     });
   }
-});
+}));
 
 // ==================== ERROR HANDLING ====================
 
 /**
- * 404 handler for unknown routes.
+ * 404 handler for unknown routes using standardized middleware
  */
-app.use((_req: Request, res: Response) => {
-  res.status(404).json({
-    success: false,
-    error: 'Endpoint not found',
-    message: 'Available endpoints: /health, /describe_location, /get_stats, /attack, /move, /new_game, /inventory, /enemies'
-  });
-});
+app.use(notFoundMiddleware);
+
+/**
+ * Global error handling middleware
+ */
+app.use(errorHandlingMiddleware);
 
 // ==================== SERVER STARTUP ====================
 
@@ -391,9 +641,20 @@ if (require.main === module) {
     console.log('  GET  /get_stats         - Get player stats');
     console.log('  GET  /inventory         - Get player inventory');
     console.log('  GET  /enemies           - Get enemies at location');
+    console.log('  GET  /saved_games       - List saved games');
+    console.log('  GET  /autosave_status   - Check auto-save config');
     console.log('  POST /attack            - Attack an enemy');
     console.log('  POST /move              - Move to a location');
     console.log('  POST /new_game          - Start a new game');
+    console.log('  POST /save_game         - Save current progress');
+    console.log('  POST /load_game         - Load a saved game');
+    console.log('  POST /manual_save       - Force manual save');
+    console.log('  DEL  /saved_games/:file - Delete a saved game');
+    console.log('');
+    console.log('💾 Auto-save:', AUTO_SAVE_ENABLED ? '✅ Enabled' : '❌ Disabled');
+    if (AUTO_SAVE_ENABLED) {
+      console.log('   Events: Enemy Defeats, Location Changes');
+    }
     console.log('');
     console.log('Press Ctrl+C to stop the server.');
     console.log('='.repeat(50));

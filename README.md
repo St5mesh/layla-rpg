@@ -11,6 +11,20 @@ This is a **text-based RPG game** that you can play through the Layla Android ap
 - Track your character's stats and inventory
 - All through natural language commands!
 
+## Architecture: Unlimited AI-Generated Worlds
+
+This RPG is designed for **unlimited, AI-generated content**:
+
+🎯 **Starter World**: The included 6 locations are a *foundation* for immediate gameplay, not a limitation
+
+🤖 **AI-Native Design**: Layla's built-in LLM can generate new locations, enemies, quests, and lore dynamically based on your actions and interests
+
+🏗️ **Modular Agents**: Python agents (`WorldStateManager`, `LoreManager`, `GMAgent`) provide the framework for procedural content generation
+
+♾️ **Infinite Possibilities**: Want to explore a haunted castle? Ancient ruins? Underwater city? Just ask! The AI creates it contextually based on your story.
+
+The current implementation provides the *mechanical foundation* (combat, stats, persistence) while the AI handles the *creative content* (world-building, narrative, characters). See `docs/dynamic-world-architecture.md` for detailed technical architecture.
+
 ## Quick Start
 
 ### Prerequisites
@@ -70,6 +84,9 @@ This is a **text-based RPG game** that you can play through the Layla Android ap
 | `check inventory` | See what items you have |
 | `scan` | Check for enemies nearby |
 | `attack [enemy]` | Fight an enemy |
+| `save game` | Save your progress to a file |
+| `load game` | Show available saved games |
+| `load [filename]` | Load a specific saved game |
 | `new game` | Start a fresh adventure |
 | `help` | Show all commands |
 
@@ -96,7 +113,38 @@ You: "attack giant rat"
 > You attack Giant Rat and deal 9 damage!
 > Victory! You have defeated Giant Rat!
 > You gained 10 experience points!
+
+You: "save game"
+> Game saved successfully as "Auto Save"
+
+You: "load game"
+> Found 3 saved game(s):
+> - Auto Save (Hero, Level 1, Tavern Cellar, 2023-12-04)
+> - My Adventure (Hero, Level 2, Forest Entrance, 2023-12-03)
 ```
+
+## Game Persistence
+
+Your progress is automatically saved! The game includes comprehensive save/load functionality:
+
+### Auto-Save Features
+- **Enemy Defeats**: Game automatically saves when you defeat an enemy
+- **Location Changes**: Game saves when you move between areas
+- **Manual Saves**: Use `save game` command anytime
+
+### Save File Features
+- **Multiple Save Slots**: Keep multiple saved games
+- **Rich Metadata**: Each save includes player name, level, location, and timestamp
+- **Error Recovery**: Corrupted saves are handled gracefully
+- **File Management**: List and manage your saved games
+
+### Save Commands
+- `save game` - Save your current progress
+- `load game` - Show all available saves
+- `load [filename]` - Load a specific save
+- Delete saves through the API or by removing files from the `saves/` directory
+
+Your saves are stored as JSON files in the `saves/` directory, making them easy to backup or transfer between devices.
 
 ## Project Structure
 
@@ -104,16 +152,24 @@ You: "attack giant rat"
 layla-rpg/
 ├── src/
 │   ├── rpgEngine.ts      # Core game logic (stats, combat, locations)
-│   └── apiServer.ts      # HTTP server that Layla connects to
+│   ├── apiServer.ts      # HTTP server that Layla connects to
+│   ├── persistence.ts    # Save/load game state functionality
+│   ├── validation.ts     # Input validation utilities
+│   └── errorHandling.ts  # Error handling and logging
+├── saves/                # Directory for saved game files (auto-created)
 ├── config/
 │   └── layla-rpg-agent.json  # Layla agent configuration
 ├── tests/
-│   └── rpgEngine.test.ts     # Unit tests for game logic
+│   ├── rpgEngine.test.ts            # Unit tests for game logic
+│   ├── apiServer.integration.test.ts # API endpoint tests
+│   ├── validation.integration.test.ts # Validation tests
+│   └── persistence.integration.test.ts # Persistence tests
 ├── examples/
 │   └── simulateLaylaRequest.ts  # Script to test without Layla
-├── agents/                # Python agents (for reference)
-├── docs/                  # Additional documentation
-├── data/                  # Sample game data
+├── demo-persistence.ts   # Demonstration of persistence features
+├── agents/               # Python agents (for reference)
+├── docs/                 # Additional documentation
+├── data/                 # Sample game data
 ├── package.json           # Node.js dependencies
 ├── tsconfig.json          # TypeScript configuration
 └── README.md              # You are here!
@@ -178,6 +234,42 @@ curl -X POST http://localhost:3000/new_game \
   -d '{"playerName": "Hero"}'
 ```
 
+### Persistence Endpoints
+
+### POST `/save_game`
+Save the current game state.
+```bash
+curl -X POST http://localhost:3000/save_game \
+  -H "Content-Type: application/json" \
+  -d '{"saveName": "My Progress"}'
+```
+
+### POST `/load_game`
+Load a saved game state.
+```bash
+curl -X POST http://localhost:3000/load_game \
+  -H "Content-Type: application/json" \
+  -d '{"filename": "Hero_My_Progress_2023-12-04T10-30-00-000Z.json"}'
+```
+
+### GET `/saved_games`
+List all available saved games.
+```bash
+curl http://localhost:3000/saved_games
+```
+
+### DELETE `/saved_games/:filename`
+Delete a specific saved game.
+```bash
+curl -X DELETE http://localhost:3000/saved_games/Hero_My_Progress_2023-12-04T10-30-00-000Z.json
+```
+
+### GET `/autosave_status`
+Check auto-save configuration.
+```bash
+curl http://localhost:3000/autosave_status
+```
+
 ## Testing
 
 ### Run Unit Tests
@@ -195,9 +287,16 @@ npm start
 npm run simulate
 ```
 
-## Game World
+### Test Persistence System
+This demonstrates the save/load functionality:
+```bash
+# Run the persistence demonstration:
+npx ts-node demo-persistence.ts
+```
 
-The default game includes these locations:
+## Starter World (Foundation)
+
+The game includes these **starter locations** for immediate gameplay:
 
 | Location | Description | Enemies |
 |----------|-------------|---------|
@@ -207,6 +306,8 @@ The default game includes these locations:
 | **Tavern Cellar** | Dark basement | Giant Rat |
 | **Forest Entrance** | Edge of the woods | Goblin Scout |
 | **Deep Forest** | Dangerous woodland | Shadow Wolf, Goblin Warrior |
+
+> **🌍 Beyond These Locations**: The real adventure begins when you ask Layla to take you somewhere new! Try saying things like "I want to explore ancient ruins" or "Take me to a magical forest" - the AI will generate new areas dynamically based on your interests and the story context.
 
 ## Development
 
