@@ -51,5 +51,3 @@ See [docs/implementation_plan.md](docs/implementation_plan.md) for a stepwise ap
 For details on agent design and function interfaces, see [docs/agent_concept.md](docs/agent_concept.md).
 
 ---
-
-*This project is inspired by AIDungeon/ST5mesh but is rebuilt to take full advantage of Layla’s agent and MCP features.*
