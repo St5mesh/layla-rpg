@@ -10,11 +10,19 @@
     "test:unit": "jest rpgEngine.test.ts",
     "test:integration": "jest apiServer.integration.test.ts",
     "test:watch": "jest --watch",
-    "simulate": "ts-node examples/simulateLaylaRequest.ts"
+    "simulate": "ts-node examples/simulateLaylaRequest.ts",
+    "env:setup": "powershell -ExecutionPolicy Bypass -File setup-environment.ps1",
+    "env:validate": "powershell -ExecutionPolicy Bypass -File validate-simple.ps1",
+    "pretest": "powershell -ExecutionPolicy Bypass -File validate-simple.ps1",
+    "postinstall": "powershell -ExecutionPolicy Bypass -File validate-simple.ps1 || echo 'Environment validation completed with warnings'"
   },
   "keywords": ["rpg", "layla", "agent", "game"],
   "author": "",
   "license": "ISC",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
   "dependencies": {
     "@types/express": "^5.0.6",
     "@types/jest": "^30.0.0",
