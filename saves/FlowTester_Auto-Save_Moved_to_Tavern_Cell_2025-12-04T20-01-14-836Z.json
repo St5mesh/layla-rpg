@@ -1,0 +1,170 @@
+{
+  "metadata": {
+    "filename": "FlowTester_Auto-Save_Moved_to_Tavern_Cell_2025-12-04T20-01-14-836Z.json",
+    "saveName": "Auto-Save (Moved to Tavern Cellar)",
+    "playerName": "FlowTester",
+    "playerLevel": 1,
+    "currentLocation": "Tavern Cellar",
+    "saveDate": "2025-12-04T20:01:14.836Z",
+    "gameVersion": "1.0.0"
+  },
+  "gameState": {
+    "player": {
+      "id": "player_1764878474797",
+      "name": "FlowTester",
+      "stats": {
+        "health": 100,
+        "maxHealth": 100,
+        "attack": 10,
+        "defense": 5,
+        "level": 1,
+        "experience": 0
+      },
+      "currentLocation": "cellar",
+      "inventory": []
+    },
+    "locations": {
+      "tavern": {
+        "id": "tavern",
+        "name": "The Rusty Dragon Tavern",
+        "description": "You stand in a cozy tavern filled with the smell of ale and roasting meat. A crackling fire warms the room. The barkeeper nods at you from behind the counter. Adventurers share stories at wooden tables.",
+        "exits": [
+          "town_square",
+          "cellar"
+        ],
+        "enemies": [],
+        "items": [
+          "mug of ale",
+          "bread"
+        ]
+      },
+      "town_square": {
+        "id": "town_square",
+        "name": "Town Square",
+        "description": "The bustling center of the town. Merchants call out their wares from colorful stalls. A stone fountain sits in the middle, its water sparkling in the sunlight. Guards patrol the area keeping the peace.",
+        "exits": [
+          "tavern",
+          "forest_entrance",
+          "blacksmith"
+        ],
+        "enemies": [],
+        "items": [
+          "gold coin"
+        ]
+      },
+      "blacksmith": {
+        "id": "blacksmith",
+        "name": "The Iron Forge",
+        "description": "Heat radiates from the forge where the blacksmith hammers away at glowing metal. Weapons and armor line the walls, ready for purchase. The clang of metal on metal fills the air.",
+        "exits": [
+          "town_square"
+        ],
+        "enemies": [],
+        "items": [
+          "iron sword",
+          "leather armor"
+        ]
+      },
+      "cellar": {
+        "id": "cellar",
+        "name": "Tavern Cellar",
+        "description": "A dark, musty cellar beneath the tavern. Barrels of ale line the walls. Something squeaks in the shadows... you spot movement between the crates.",
+        "exits": [
+          "tavern"
+        ],
+        "enemies": [
+          {
+            "id": "rat_1",
+            "name": "Giant Rat",
+            "description": "A large rat with gleaming red eyes",
+            "stats": {
+              "health": 15,
+              "maxHealth": 15,
+              "attack": 3,
+              "defense": 1,
+              "level": 1,
+              "experience": 0
+            },
+            "experienceReward": 10
+          }
+        ],
+        "items": [
+          "torch",
+          "old key"
+        ]
+      },
+      "forest_entrance": {
+        "id": "forest_entrance",
+        "name": "Forest Entrance",
+        "description": "The edge of a dense, dark forest. Tall trees loom overhead, their branches blocking out most of the sunlight. A worn path leads deeper into the woods. You hear strange sounds in the distance.",
+        "exits": [
+          "town_square",
+          "deep_forest"
+        ],
+        "enemies": [
+          {
+            "id": "goblin_1",
+            "name": "Goblin Scout",
+            "description": "A sneaky goblin armed with a crude dagger",
+            "stats": {
+              "health": 25,
+              "maxHealth": 25,
+              "attack": 6,
+              "defense": 2,
+              "level": 2,
+              "experience": 0
+            },
+            "experienceReward": 25
+          }
+        ],
+        "items": [
+          "mushroom",
+          "fallen branch"
+        ]
+      },
+      "deep_forest": {
+        "id": "deep_forest",
+        "name": "Deep Forest",
+        "description": "The forest grows darker and more menacing here. Ancient trees twist together, their roots forming treacherous paths. You sense danger lurking nearby. A faint glow comes from deeper within...",
+        "exits": [
+          "forest_entrance"
+        ],
+        "enemies": [
+          {
+            "id": "wolf_1",
+            "name": "Shadow Wolf",
+            "description": "A large wolf with dark fur that seems to absorb the light",
+            "stats": {
+              "health": 40,
+              "maxHealth": 40,
+              "attack": 10,
+              "defense": 4,
+              "level": 3,
+              "experience": 0
+            },
+            "experienceReward": 50
+          },
+          {
+            "id": "goblin_2",
+            "name": "Goblin Warrior",
+            "description": "A battle-scarred goblin wielding a rusty sword",
+            "stats": {
+              "health": 30,
+              "maxHealth": 30,
+              "attack": 8,
+              "defense": 3,
+              "level": 2,
+              "experience": 0
+            },
+            "experienceReward": 30
+          }
+        ],
+        "items": [
+          "healing potion",
+          "mysterious gem"
+        ]
+      }
+    }
+  },
+  "saveFormatVersion": "1.0.0"
+}
