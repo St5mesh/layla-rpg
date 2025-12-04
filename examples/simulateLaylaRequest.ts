@@ -12,7 +12,21 @@
  * - Testing the integration without Layla
  * - Understanding how the API works
  * - Debugging issues
+ * 
+ * Requirements:
+ * - Node.js 18+ (uses native fetch API)
  */
+
+// ==================== NODE VERSION CHECK ====================
+
+// Check if we're running Node.js 18+ which has native fetch
+const nodeVersion = parseInt(process.versions.node.split('.')[0], 10);
+if (nodeVersion < 18) {
+  console.error('Error: Node.js 18 or higher is required for the native fetch API.');
+  console.error(`Current version: ${process.versions.node}`);
+  console.error('Please upgrade Node.js or install a fetch polyfill.');
+  process.exit(1);
+}
 
 // ==================== CONFIGURATION ====================
 
