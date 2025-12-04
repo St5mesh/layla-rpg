@@ -1,0 +1,18 @@
+[
+    {
+        "id": "thalia",
+        "name": "Thalia",
+        "class": "Rogue",
+        "stats": {"perception": 5, "stealth": 4},
+        "inventory": ["dagger", "lockpick"],
+        "traits": ["cautious", "quiet"]
+    },
+    {
+        "id": "borin",
+        "name": "Borin",
+        "class": "Warrior",
+        "stats": {"strength": 6, "defense": 5},
+        "inventory": ["axe", "shield"],
+        "traits": ["brave", "loyal"]
+    }
+]
