@@ -1,0 +1,25 @@
+{
+  "name": "layla-rpg",
+  "version": "1.0.0",
+  "description": "A modular, extensible RPG engine for the Layla agent platform. Provides HTTP endpoints for RPG gameplay.",
+  "main": "dist/src/apiServer.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "ts-node src/apiServer.ts",
+    "test": "jest",
+    "simulate": "ts-node examples/simulateLaylaRequest.ts"
+  },
+  "keywords": ["rpg", "layla", "agent", "game"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@types/express": "^5.0.6",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^24.10.1",
+    "express": "^5.2.1",
+    "jest": "^30.2.0",
+    "ts-jest": "^29.4.6",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}
