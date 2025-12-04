@@ -1,0 +1,55 @@
+{
+  "id": "rpg-save-game-008",
+  "name": "RPG Save Game",
+  "description": "Save your current progress in the RPG game",
+  "version": 1,
+  "enabled": true,
+  "triggers": [
+    {
+      "type": "on_phrase",
+      "data": {
+        "phrase": "save game"
+      },
+      "exclusivity": "OR"
+    },
+    {
+      "type": "on_phrase",
+      "data": {
+        "phrase": "save progress"
+      },
+      "exclusivity": "OR"
+    },
+    {
+      "type": "on_phrase",
+      "data": {
+        "phrase": "save my game"
+      },
+      "exclusivity": "OR"
+    }
+  ],
+  "toolsData": [
+    {
+      "toolId": "http-request",
+      "name": "Save Game",
+      "description": "Saves the current game state to the server",
+      "icon": 150,
+      "ai_decides_input": false,
+      "parameters": {
+        "url": "http://localhost:3000/save_game",
+        "method": "POST",
+        "headers": "Content-Type: application/json",
+        "body": "{\"saveName\": \"Manual Save\"}"
+      }
+    },
+    {
+      "toolId": "provide-context",
+      "name": "Provide Context",
+      "description": "Provides the save confirmation to the conversation",
+      "icon": 150,
+      "ai_decides_input": false,
+      "parameters": {
+        "context": "💾 {{input}}"
+      }
+    }
+  ]
+}

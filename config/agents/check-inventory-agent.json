@@ -1,0 +1,61 @@
+{
+  "id": "rpg-check-inventory-006",
+  "name": "RPG Check Inventory",
+  "description": "Check what items you're carrying in your inventory",
+  "version": 1,
+  "enabled": true,
+  "triggers": [
+    {
+      "type": "on_phrase",
+      "data": {
+        "phrase": "check inventory"
+      },
+      "exclusivity": "OR"
+    },
+    {
+      "type": "on_phrase",
+      "data": {
+        "phrase": "show inventory"
+      },
+      "exclusivity": "OR"
+    },
+    {
+      "type": "on_phrase",
+      "data": {
+        "phrase": "my inventory"
+      },
+      "exclusivity": "OR"
+    },
+    {
+      "type": "on_phrase",
+      "data": {
+        "phrase": "what do I have"
+      },
+      "exclusivity": "OR"
+    }
+  ],
+  "toolsData": [
+    {
+      "toolId": "http-request",
+      "name": "Get Inventory",
+      "description": "Gets the player's current inventory from the RPG server",
+      "icon": 150,
+      "ai_decides_input": false,
+      "parameters": {
+        "url": "http://localhost:3000/inventory",
+        "method": "GET",
+        "headers": "Content-Type: application/json"
+      }
+    },
+    {
+      "toolId": "provide-context",
+      "name": "Provide Context",
+      "description": "Provides the inventory contents to the conversation",
+      "icon": 150,
+      "ai_decides_input": false,
+      "parameters": {
+        "context": "🎒 {{input}}"
+      }
+    }
+  ]
+}

@@ -82,13 +82,14 @@
     {
       "toolId": "http-request",
       "name": "RPG Server Request", 
-      "description": "Makes HTTP requests to the RPG server",
+      "description": "Makes HTTP requests to the RPG server. Available endpoints: /describe_location (GET), /get_stats (GET), /attack (POST with target), /move (POST with location), /new_game (POST), /inventory (GET), /enemies (GET), /save_game (POST), /load_game (POST), /saved_games (GET)",
       "icon": 150,
       "ai_decides_input": true,
       "parameters": {
-        "url": "http://localhost:3000/describe_location",
-        "method": "GET",
-        "headers": "Content-Type: application/json"
+        "url": "Construct the appropriate URL based on the user's command. Base URL is http://localhost:3000. For movement use /move, for combat use /attack, for stats use /get_stats, for looking around use /describe_location, etc.",
+        "method": "Use GET for info requests (stats, location, inventory, enemies, saved games) and POST for actions (attack, move, new game, save)",
+        "headers": "Content-Type: application/json",
+        "body": "For POST requests, include the required JSON body. For attack: {\"target\": \"enemy_name\"}, for move: {\"location\": \"location_name\"}, for save: {\"saveName\": \"save_name\"}, etc."
       }
     },
     {

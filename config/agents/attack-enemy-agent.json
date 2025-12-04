@@ -1,0 +1,58 @@
+{
+  "id": "rpg-attack-enemy-003",
+  "name": "RPG Attack Enemy",
+  "description": "Attack an enemy in combat during the RPG game",
+  "version": 1,
+  "enabled": true,
+  "triggers": [
+    {
+      "type": "on_regex",
+      "data": {
+        "regex": "attack (.+)",
+        "trigger_on_output": false
+      },
+      "exclusivity": "OR"
+    },
+    {
+      "type": "on_regex",
+      "data": {
+        "regex": "fight (.+)",
+        "trigger_on_output": false
+      },
+      "exclusivity": "OR"
+    },
+    {
+      "type": "on_regex",
+      "data": {
+        "regex": "hit (.+)",
+        "trigger_on_output": false
+      },
+      "exclusivity": "OR"
+    }
+  ],
+  "toolsData": [
+    {
+      "toolId": "http-request",
+      "name": "Attack Enemy",
+      "description": "Sends an attack command to the RPG server",
+      "icon": 150,
+      "ai_decides_input": true,
+      "parameters": {
+        "url": "http://localhost:3000/attack",
+        "method": "POST",
+        "headers": "Content-Type: application/json",
+        "body": "Create JSON with target field containing the enemy name from the user's command. Format: {\"target\": \"enemy_name\"}"
+      }
+    },
+    {
+      "toolId": "provide-context",
+      "name": "Provide Context",
+      "description": "Provides the combat result to the conversation",
+      "icon": 150,
+      "ai_decides_input": false,
+      "parameters": {
+        "context": "⚔️ {{input}}"
+      }
+    }
+  ]
+}

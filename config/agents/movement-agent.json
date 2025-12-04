@@ -1,0 +1,66 @@
+{
+  "id": "rpg-movement-004",
+  "name": "RPG Movement", 
+  "description": "Move to different locations in the RPG world",
+  "version": 1,
+  "enabled": true,
+  "triggers": [
+    {
+      "type": "on_regex",
+      "data": {
+        "regex": "go to (.+)",
+        "trigger_on_output": false
+      },
+      "exclusivity": "OR"
+    },
+    {
+      "type": "on_regex",
+      "data": {
+        "regex": "enter (.+)",
+        "trigger_on_output": false
+      },
+      "exclusivity": "OR"
+    },
+    {
+      "type": "on_regex",
+      "data": {
+        "regex": "move to (.+)",
+        "trigger_on_output": false
+      },
+      "exclusivity": "OR"
+    },
+    {
+      "type": "on_regex",
+      "data": {
+        "regex": "travel to (.+)",
+        "trigger_on_output": false
+      },
+      "exclusivity": "OR"
+    }
+  ],
+  "toolsData": [
+    {
+      "toolId": "http-request",
+      "name": "Move to Location",
+      "description": "Moves the character to a new location",
+      "icon": 150,
+      "ai_decides_input": true,
+      "parameters": {
+        "url": "http://localhost:3000/move",
+        "method": "POST",
+        "headers": "Content-Type: application/json",
+        "body": "Create JSON with location field containing the destination from the user's command. Map natural language to location IDs: tavern, town_square, blacksmith, cellar, forest_entrance, deep_forest. Format: {\"location\": \"location_id\"}"
+      }
+    },
+    {
+      "toolId": "provide-context",
+      "name": "Provide Context",
+      "description": "Provides the movement result and new location description",
+      "icon": 150,
+      "ai_decides_input": false,
+      "parameters": {
+        "context": "🚶 {{input}}"
+      }
+    }
+  ]
+}

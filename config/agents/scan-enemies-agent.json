@@ -1,0 +1,61 @@
+{
+  "id": "rpg-scan-enemies-007",
+  "name": "RPG Scan for Enemies",
+  "description": "Scan the current area for enemies and threats",
+  "version": 1,
+  "enabled": true,
+  "triggers": [
+    {
+      "type": "on_phrase",
+      "data": {
+        "phrase": "scan"
+      },
+      "exclusivity": "OR"
+    },
+    {
+      "type": "on_phrase",
+      "data": {
+        "phrase": "scan area"
+      },
+      "exclusivity": "OR"
+    },
+    {
+      "type": "on_phrase",
+      "data": {
+        "phrase": "enemies"
+      },
+      "exclusivity": "OR"
+    },
+    {
+      "type": "on_phrase",
+      "data": {
+        "phrase": "who is here"
+      },
+      "exclusivity": "OR"
+    }
+  ],
+  "toolsData": [
+    {
+      "toolId": "http-request",
+      "name": "Scan for Enemies",
+      "description": "Scans the current location for enemies",
+      "icon": 150,
+      "ai_decides_input": false,
+      "parameters": {
+        "url": "http://localhost:3000/enemies",
+        "method": "GET",
+        "headers": "Content-Type: application/json"
+      }
+    },
+    {
+      "toolId": "provide-context",
+      "name": "Provide Context",
+      "description": "Provides the enemy scan results to the conversation",
+      "icon": 150,
+      "ai_decides_input": false,
+      "parameters": {
+        "context": "👁️ {{input}}"
+      }
+    }
+  ]
+}

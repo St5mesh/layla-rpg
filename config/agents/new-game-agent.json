@@ -1,0 +1,62 @@
+{
+  "id": "rpg-new-game-005",
+  "name": "RPG New Game",
+  "description": "Start a new RPG adventure with a fresh character",
+  "version": 1,
+  "enabled": true,
+  "triggers": [
+    {
+      "type": "on_phrase",
+      "data": {
+        "phrase": "new game"
+      },
+      "exclusivity": "OR"
+    },
+    {
+      "type": "on_phrase",
+      "data": {
+        "phrase": "start new game"
+      },
+      "exclusivity": "OR"
+    },
+    {
+      "type": "on_phrase",
+      "data": {
+        "phrase": "restart"
+      },
+      "exclusivity": "OR"
+    },
+    {
+      "type": "on_phrase",
+      "data": {
+        "phrase": "start over"
+      },
+      "exclusivity": "OR"
+    }
+  ],
+  "toolsData": [
+    {
+      "toolId": "http-request",
+      "name": "Start New Game",
+      "description": "Starts a new RPG game with default character",
+      "icon": 150,
+      "ai_decides_input": false,
+      "parameters": {
+        "url": "http://localhost:3000/new_game",
+        "method": "POST",
+        "headers": "Content-Type: application/json",
+        "body": "{\"playerName\": \"Hero\"}"
+      }
+    },
+    {
+      "toolId": "provide-context",
+      "name": "Provide Context",
+      "description": "Provides the new game confirmation and starting location",
+      "icon": 150,
+      "ai_decides_input": false,
+      "parameters": {
+        "context": "🎮 New adventure started!\n\n{{input}}"
+      }
+    }
+  ]
+}

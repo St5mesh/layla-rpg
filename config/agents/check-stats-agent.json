@@ -1,0 +1,68 @@
+{
+  "id": "rpg-check-stats-002",
+  "name": "RPG Check Stats",
+  "description": "Check your character's stats, health, and level in the RPG game",
+  "version": 1,
+  "enabled": true,
+  "triggers": [
+    {
+      "type": "on_phrase",
+      "data": {
+        "phrase": "check stats"
+      },
+      "exclusivity": "OR"
+    },
+    {
+      "type": "on_phrase",
+      "data": {
+        "phrase": "show stats"
+      },
+      "exclusivity": "OR"
+    },
+    {
+      "type": "on_phrase",
+      "data": {
+        "phrase": "my stats"
+      },
+      "exclusivity": "OR"
+    },
+    {
+      "type": "on_phrase",
+      "data": {
+        "phrase": "character stats"
+      },
+      "exclusivity": "OR"
+    },
+    {
+      "type": "on_phrase",
+      "data": {
+        "phrase": "status"
+      },
+      "exclusivity": "OR"
+    }
+  ],
+  "toolsData": [
+    {
+      "toolId": "http-request",
+      "name": "Get Character Stats",
+      "description": "Gets the player's current stats from the RPG server",
+      "icon": 150,
+      "ai_decides_input": false,
+      "parameters": {
+        "url": "http://localhost:3000/get_stats",
+        "method": "GET",
+        "headers": "Content-Type: application/json"
+      }
+    },
+    {
+      "toolId": "provide-context",
+      "name": "Provide Context",
+      "description": "Provides the character stats to the conversation",
+      "icon": 150,
+      "ai_decides_input": false,
+      "parameters": {
+        "context": "📊 {{input}}"
+      }
+    }
+  ]
+}
