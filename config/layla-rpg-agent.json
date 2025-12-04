@@ -1,306 +1,105 @@
 {
-  "$schema": "https://layla-rpg.example.com/schemas/agent-config.json",
+  "id": "f1a2b3c4-5678-9abc-def0-123456789abc",
   "name": "Layla RPG Agent",
   "description": "An RPG game agent that allows you to play a text-based adventure game through Layla. Explore locations, fight enemies, and track your character stats!",
-  "version": "1.0.0",
-  "author": "Layla RPG Team",
-  
-  "_comment_server": "Configure the URL where your RPG server is running. Change localhost to your server's IP if running remotely.",
-  "serverBaseUrl": "http://localhost:3000",
-  
-  "_comment_triggers": "Each trigger maps a phrase or pattern to an API call. When you say something matching the pattern, Layla will call the API and show you the response.",
+  "version": 1,
+  "enabled": true,
   "triggers": [
     {
-      "_comment": "Look around or describe current location",
-      "id": "describe_location",
-      "patterns": [
-        "look around",
-        "where am I",
-        "describe location",
-        "look",
-        "examine room",
-        "examine area",
-        "what do I see"
-      ],
-      "regexPatterns": [
-        "^look\\s*(around)?$",
-        "^where\\s+am\\s+I\\??$",
-        "^describe\\s+(the\\s+)?(location|room|area)$"
-      ],
-      "httpMethod": "GET",
-      "endpoint": "/describe_location",
-      "responseField": "description",
-      "responsePrefix": "🗺️ ",
-      "helpText": "Say 'look around' to see what's around you."
-    },
-    
-    {
-      "_comment": "Check player stats",
-      "id": "get_stats",
-      "patterns": [
-        "check stats",
-        "show stats",
-        "my stats",
-        "character stats",
-        "show my stats",
-        "status",
-        "my status"
-      ],
-      "regexPatterns": [
-        "^(check|show|my)\\s+stats$",
-        "^character\\s*(stats|status)?$",
-        "^status$"
-      ],
-      "httpMethod": "GET",
-      "endpoint": "/get_stats",
-      "responseField": "stats",
-      "responsePrefix": "",
-      "helpText": "Say 'check stats' to see your character's status."
-    },
-    
-    {
-      "_comment": "Attack an enemy - extracts target name from command",
-      "id": "attack",
-      "patterns": [],
-      "regexPatterns": [
-        "^attack\\s+(?:the\\s+)?(.+)$",
-        "^fight\\s+(?:the\\s+)?(.+)$",
-        "^hit\\s+(?:the\\s+)?(.+)$",
-        "^strike\\s+(?:the\\s+)?(.+)$"
-      ],
-      "captureGroups": {
-        "1": "target"
+      "type": "on_phrase",
+      "data": {
+        "phrase": "look around"
       },
-      "httpMethod": "POST",
-      "endpoint": "/attack",
-      "bodyTemplate": {
-        "target": "{target}"
+      "exclusivity": "OR"
+    },
+    {
+      "type": "on_phrase", 
+      "data": {
+        "phrase": "check stats"
       },
-      "responseField": "result.message",
-      "responsePrefix": "",
-      "helpText": "Say 'attack goblin' to attack an enemy."
+      "exclusivity": "OR"
     },
-    
     {
-      "_comment": "Move to a different location - extracts location from command",
-      "id": "move",
-      "patterns": [],
-      "regexPatterns": [
-        "^go\\s+(?:to\\s+)?(?:the\\s+)?(.+)$",
-        "^enter\\s+(?:the\\s+)?(.+)$",
-        "^move\\s+(?:to\\s+)?(?:the\\s+)?(.+)$",
-        "^travel\\s+(?:to\\s+)?(?:the\\s+)?(.+)$",
-        "^walk\\s+(?:to\\s+)?(?:the\\s+)?(.+)$"
-      ],
-      "captureGroups": {
-        "1": "location"
+      "type": "on_regex",
+      "data": {
+        "regex": "^attack\\s+(.+)$",
+        "trigger_on_output": false
       },
-      "locationMapping": {
-        "_comment": "Maps natural language to location IDs",
-        "tavern": "tavern",
-        "the tavern": "tavern",
-        "rusty dragon": "tavern",
-        "rusty dragon tavern": "tavern",
-        "town square": "town_square",
-        "square": "town_square",
-        "town": "town_square",
-        "blacksmith": "blacksmith",
-        "iron forge": "blacksmith",
-        "forge": "blacksmith",
-        "cellar": "cellar",
-        "tavern cellar": "cellar",
-        "basement": "cellar",
-        "forest": "forest_entrance",
-        "forest entrance": "forest_entrance",
-        "woods": "forest_entrance",
-        "deep forest": "deep_forest",
-        "deep woods": "deep_forest"
+      "exclusivity": "OR"
+    },
+    {
+      "type": "on_regex",
+      "data": {
+        "regex": "^go\\s+to\\s+(.+)$",
+        "trigger_on_output": false
       },
-      "httpMethod": "POST",
-      "endpoint": "/move",
-      "bodyTemplate": {
-        "location": "{location}"
+      "exclusivity": "OR"
+    },
+    {
+      "type": "on_phrase",
+      "data": {
+        "phrase": "new game"
       },
-      "responseField": "description",
-      "fallbackResponseField": "message",
-      "responsePrefix": "",
-      "helpText": "Say 'go to tavern' or 'enter forest' to move."
+      "exclusivity": "OR"
     },
-    
     {
-      "_comment": "Start a new game",
-      "id": "new_game",
-      "patterns": [
-        "new game",
-        "start new game",
-        "start over",
-        "restart",
-        "new character",
-        "create character"
-      ],
-      "regexPatterns": [
-        "^(start\\s+)?(new\\s+)?game$",
-        "^start\\s+over$",
-        "^restart$",
-        "^(new|create)\\s+character$"
-      ],
-      "httpMethod": "POST",
-      "endpoint": "/new_game",
-      "bodyTemplate": {},
-      "responseField": "description",
-      "responsePrefix": "🎮 New adventure started!\n\n",
-      "helpText": "Say 'new game' to start a fresh adventure."
-    },
-    
-    {
-      "_comment": "Check inventory",
-      "id": "inventory",
-      "patterns": [
-        "check inventory",
-        "show inventory",
-        "my inventory",
-        "what do I have",
-        "my items",
-        "items",
-        "bag"
-      ],
-      "regexPatterns": [
-        "^(check|show|my)\\s+inventory$",
-        "^what\\s+do\\s+I\\s+have\\??$",
-        "^(my\\s+)?items$",
-        "^bag$"
-      ],
-      "httpMethod": "GET",
-      "endpoint": "/inventory",
-      "responseField": "message",
-      "responsePrefix": "🎒 ",
-      "helpText": "Say 'check inventory' to see what you're carrying."
-    },
-    
-    {
-      "_comment": "List enemies at current location",
-      "id": "enemies",
-      "patterns": [
-        "who is here",
-        "list enemies",
-        "scan area",
-        "enemies",
-        "scan",
-        "detect enemies"
-      ],
-      "regexPatterns": [
-        "^who\\s+is\\s+here\\??$",
-        "^(list|show)\\s+enemies$",
-        "^scan\\s*(area)?$",
-        "^enemies$",
-        "^detect\\s+enemies$"
-      ],
-      "httpMethod": "GET",
-      "endpoint": "/enemies",
-      "responseField": "message",
-      "responsePrefix": "👁️ ",
-      "helpText": "Say 'scan' or 'enemies' to see who's around."
-    },
-    
-    {
-      "_comment": "Save current game progress",
-      "id": "save_game",
-      "patterns": [
-        "save game",
-        "save progress",
-        "save my game",
-        "save my progress",
-        "create save",
-        "backup game"
-      ],
-      "regexPatterns": [
-        "^save\\s+(game|progress|my\\s+(game|progress))$",
-        "^(create\\s+)?save$",
-        "^backup\\s+game$"
-      ],
-      "httpMethod": "POST",
-      "endpoint": "/save_game",
-      "bodyTemplate": {
-        "saveName": "Manual Save"
+      "type": "on_phrase",
+      "data": {
+        "phrase": "check inventory"
       },
-      "responseField": "message",
-      "responsePrefix": "💾 ",
-      "helpText": "Say 'save game' to save your progress."
+      "exclusivity": "OR"
     },
-    
     {
-      "_comment": "Load a saved game - shows list first",
-      "id": "load_game_list",
-      "patterns": [
-        "load game",
-        "load save",
-        "load my game",
-        "restore game",
-        "continue game",
-        "show saves",
-        "list saves"
-      ],
-      "regexPatterns": [
-        "^(load|restore|continue)\\s+(game|save)$",
-        "^load\\s+my\\s+game$",
-        "^(show|list)\\s+saves?$"
-      ],
-      "httpMethod": "GET",
-      "endpoint": "/saved_games",
-      "responseField": "saves",
-      "responseProcessor": "formatSaveList",
-      "responsePrefix": "💽 **Saved Games:**\\n\\n",
-      "helpText": "Say 'load game' to see available saves."
-    },
-    
-    {
-      "_comment": "Load a specific saved game by name pattern",
-      "id": "load_specific_game",
-      "patterns": [],
-      "regexPatterns": [
-        "^load\\s+(.+)$",
-        "^restore\\s+(.+)$"
-      ],
-      "captureGroups": {
-        "1": "filename"
+      "type": "on_phrase",
+      "data": {
+        "phrase": "scan"
       },
-      "httpMethod": "POST",
-      "endpoint": "/load_game",
-      "bodyTemplate": {
-        "filename": "{filename}"
-      },
-      "responseField": "description",
-      "fallbackResponseField": "message",
-      "responsePrefix": "🔄 Game loaded!\\n\\n",
-      "helpText": "Say 'load [filename]' to load a specific save."
+      "exclusivity": "OR"
     },
-    
     {
-      "_comment": "Help command",
-      "id": "help",
-      "patterns": [
-        "help",
-        "commands",
-        "how to play",
-        "what can I do"
-      ],
-      "regexPatterns": [
-        "^help$",
-        "^commands$",
-        "^how\\s+to\\s+play$",
-        "^what\\s+can\\s+I\\s+do\\??$"
-      ],
-      "staticResponse": true,
-      "response": "🎮 **Layla RPG Commands**\n\n**Exploration:**\n• 'look around' - See your surroundings\n• 'go to [place]' - Travel somewhere\n• 'scan' - Check for enemies\n\n**Character:**\n• 'check stats' - View your stats\n• 'check inventory' - See your items\n\n**Combat:**\n• 'attack [enemy]' - Fight an enemy\n\n**Save & Load:**\n• 'save game' - Save your progress\n• 'load game' - See saved games\n• 'load [filename]' - Load specific save\n\n**Game:**\n• 'new game' - Start fresh\n• 'help' - Show this message",
-      "helpText": "Say 'help' to see all available commands."
+      "type": "on_phrase",
+      "data": {
+        "phrase": "save game"
+      },
+      "exclusivity": "OR"
+    },
+    {
+      "type": "on_phrase",
+      "data": {
+        "phrase": "load game"
+      },
+      "exclusivity": "OR"
+    },
+    {
+      "type": "on_phrase",
+      "data": {
+        "phrase": "help"
+      },
+      "exclusivity": "OR"
     }
   ],
-  
-  "_comment_settings": "Additional settings for the agent behavior",
-  "settings": {
-    "connectionTimeout": 5000,
-    "retryAttempts": 2,
-    "showErrorDetails": false,
-    "defaultErrorMessage": "Sorry, I couldn't complete that action. The RPG server might be offline. Make sure it's running at the configured URL."
-  }
+  "toolsData": [
+    {
+      "toolId": "http-request",
+      "name": "RPG Server Request", 
+      "description": "Makes HTTP requests to the RPG server",
+      "icon": 150,
+      "ai_decides_input": true,
+      "parameters": {
+        "url": "http://localhost:3000/describe_location",
+        "method": "GET",
+        "headers": "Content-Type: application/json"
+      }
+    },
+    {
+      "toolId": "provide-context",
+      "name": "Provide Context",
+      "description": "Provides RPG game context to the conversation",
+      "icon": 150, 
+      "ai_decides_input": false,
+      "parameters": {
+        "context": "🎮 RPG Game Response:\n\n{{input}}"
+      }
+    }
+  ]
 }
